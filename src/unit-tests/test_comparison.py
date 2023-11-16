@@ -34,15 +34,16 @@ class TestComparison(unittest.TestCase):
         tc = CaseComparison()
         te1 = CaseEntry("../../src/case-examples/synthetic_base.md")
         te2 = CaseEntry("../../src/case-examples/synthetic_keyword3.md")
-        result = tc.compare(te1, te2, decay=0.6, metric="absolute", sentence_length=5, mode="silent")
-        self.assertTrue(result["score_tfidf"] >= 0)
-        self.assertTrue(result["score_bert"] >= 0)
+        result = tc.compare(te1, te2, decay=0.6, metric="absolute", sentence_length=5, mode="silent",
+                            method="random_sentences")
+        self.assertTrue(result["score_random_sentences"] >= 0)
 
     def test_compare_with_tree(self):
         tt = CaseTree(CaseEntry("../../src/case-examples/synthetic_base.md"))
         te3 = CaseEntry("../../src/case-examples/synthetic_keyword3.md")
         tc = CaseComparison()
-        tc.compare_case_entry_with_tree(te3, tt, decay=0.5, metric="average", sentence_length=5, mode="silent")
+        tc.compare_case_entry_with_tree(te3, tt, decay=0.5, metric="average", sentence_length=5, mode="silent",
+                                        method="random_sentences")
 
 
 if __name__ == '__main__':
