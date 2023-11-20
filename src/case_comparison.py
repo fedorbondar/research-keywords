@@ -5,6 +5,8 @@ from constants import HEADERS_AND_FORMAT, RUSSIAN_STOPWORDS, LOGS_DIRECTORY
 
 from nltk.tokenize import word_tokenize
 from nltk.stem import SnowballStemmer
+from nltk import ngrams
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
 
@@ -29,9 +31,9 @@ class CaseComparison:
         self.model = SentenceTransformer('distiluse-base-multilingual-cased-v1')
         self.method_to_function = dict([("tfidf", self.compare_using_tfidf),
                                         ("random_sentences", self.compare_using_random_sentences),
-                                        ("rake", self.compare_using_rake_phrases)
+                                        ("rake", self.compare_using_rake_phrases),
+                                        ("ngrams", self.compare_using_ngrams)
                                         ])
-        self.score_names = ["score_tfidf", "score_random_sentences", "score_rake"]
 
     def tokenize_raw_data(self, case_entry: CaseEntry) -> list[str]:
         tokens = word_tokenize(case_entry.data)
@@ -60,6 +62,10 @@ class CaseComparison:
         rake = Rake()
         rake.extract_keywords_from_text(text)
         return rake.get_ranked_phrases()
+
+    def create_ngrams(self, tokens: list[str], sentence_length: int = 10) -> list[str]:
+        len_grams = ngrams(tokens, sentence_length)
+        return [" ".join(list(gram)) for gram in len_grams]
 
     def create_sentences_for_bert(self, tokens: list[str], sentence_length: int = 10) -> list[str]:
         return [" ".join(tokens[idx: idx + sentence_length]) for idx in range(0, len(tokens), sentence_length)]
@@ -108,6 +114,53 @@ class CaseComparison:
             if comp_result["score_rake"] > 0:
                 return True
             return False
+        if score_name == "score_ngrams":
+            if metric == "average" and comp_result["score_tfidf"] >= 0.05:
+                return True
+            if metric == "absolute" and comp_result["score_tfidf"] >= 100:
+                return True
+            return False
+
+    def compare_using_ngrams(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
+                             sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
+                             mode: str = "silent") -> dict[str, float]:
+        if mode == "silent" or mode == "print":
+            if mode == "print":
+                print("Using ngrams to compare entries:")
+            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
+            sentences1, sentences2 = (self.create_ngrams(tokens1, sentence_length),
+                                      self.create_ngrams(tokens2, sentence_length))
+            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
+            if mode == "print":
+                score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
+                                                               metric=metric,
+                                                               print_labels=True)
+            else:
+                score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
+                                                               metric=metric,
+                                                               print_labels=False)
+            if mode == "print":
+                print('Score on BERT with ngrams: ', score_ngrams)
+            return dict([("score_ngrams", score_ngrams)])
+
+        elif mode == "log":
+            info("Using ngrams to compare entries:")
+            info("Creating tokens for additional data")
+            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
+            info("done")
+            info("Creating ngrams for BERT sentence vectorization")
+            sentences1, sentences2 = (self.create_ngrams(tokens1, sentence_length),
+                                      self.create_ngrams(tokens2, sentence_length))
+            info("done")
+            info("Creating BERT vectors and counting their cosine similarity")
+            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
+            info("done")
+            info('Evaluating cosine similarity')
+            score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
+                                                           metric=metric,
+                                                           print_labels=False)
+            info('Score on BERT with ngrams ' + str(score_ngrams))
+            return dict([("score_ngrams", score_ngrams)])
 
     def compare_using_rake_phrases(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
                                    sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
