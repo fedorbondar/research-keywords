@@ -3,9 +3,11 @@ from case_comparison import CaseComparison
 
 
 class KeywordDetection:
+    def __init__(self):
+        self.cc = CaseComparison()
+
     def dummy_syntax_check(self, case_entry: CaseEntry) -> list[str]:
-        cc = CaseComparison()
-        tokens = cc.tokenize_additional_info(case_entry)
+        tokens = self.cc.tokenize_additional_info(case_entry)
         suspicious = [token for token in tokens if token.isdigit() and (len(token) == 6 or len(token) == 7)]
 
         result = []
