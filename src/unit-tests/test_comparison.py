@@ -17,7 +17,7 @@ class TestComparison(unittest.TestCase):
         te1 = CaseEntry("../../src/case-examples/synthetic_keyword1.md")
         te2 = CaseEntry("../../src/case-examples/synthetic_keyword2.md")
         t1, t2 = self.tc.tokenize_additional_info(te1), self.tc.tokenize_additional_info(te2)
-        r = self.tc.vectorize_and_count_similarity(t1, t2)
+        r = self.tc.vectorize_with_tfidf_and_count_similarity(t1, t2)
         self.assertEqual(len(r), len(t1))
         self.assertEqual(len(r[0]), len(t2))
 

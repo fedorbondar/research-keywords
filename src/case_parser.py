@@ -1,6 +1,6 @@
+from dataclasses import dataclass
 from io import open
 from re import findall, split, sub
-from dataclasses import dataclass
 
 
 @dataclass
@@ -41,11 +41,21 @@ class CaseEntry:
             self.data = f.read()
 
     def __parse_sections(self):
+        """
+        Splits case description into sections by headings.
+        """
+
         sections = sub("\n+", " ", self.data).strip()
         sections = sub("[`*\"\']+", "", sections)
         self.sections = split("#{1,2}", sections)[1:]
 
     def __extract_keywords(self):
+        """
+        Extracts keywords using following pattern matching:
+
+        keyword = [``title``](``link to case``) [Link to keyword](``link to .md``)
+        """
+
         for section in self.sections:
             content_and_case = findall(r'keyword = \[[^.]+]\(\S+\)', section)
             link_to_keyword = findall(r'\[Link to keyword]\(\S+\)', section)
@@ -58,6 +68,10 @@ class CaseEntry:
             self.sections[i] = sub(r'\[Link to keyword]\(\S+\)', "", self.sections[i])
 
     def __create_main_info(self):
+        """
+        Initializes main information of case: title, id, etc.
+        """
+
         for section in self.sections:
             if section.startswith(" URL:"):
                 self.url = sub("URL:", " ", section).strip()
@@ -77,11 +91,19 @@ class CaseEntry:
                 self.main_product = sub("Main Product:", " ", section).strip()
 
     def __cleanup_punctuation(self):
+        """
+        Deletes special symbols from rest of description.
+        """
+
         for i in range(len(self.sections)):
             self.sections[i] = sub(r'[\\/:.!?,|\-()\[\]=+{}#~@№$;%^&]+', " ", self.sections[i])
             self.sections[i] = sub(r' +', ' ', self.sections[i])
 
     def __create_additional_info(self):
+        """
+        Initializes additional information of case: description, preconditions, steps (contents and expectations).
+        """
+
         for section in self.sections:
             if section.startswith(" Description"):
                 self.description = sub("Description", " ", section).strip().lower()

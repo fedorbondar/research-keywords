@@ -1,27 +1,31 @@
+from case_crawler import CaseCrawler
 from case_parser import CaseEntry
 from case_tree import CaseTree
-from case_crawler import CaseCrawler
 from constants import HEADERS_AND_FORMAT, RUSSIAN_STOPWORDS, LOGS_DIRECTORY
+
+from datetime import datetime
+from logging import basicConfig, info, INFO
 
 from nltk.tokenize import word_tokenize
 from nltk.stem import SnowballStemmer
 from nltk import ngrams
+from rake_nltk import Rake
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from re import sub
 
 from sentence_transformers import SentenceTransformer
 
-from rake_nltk import Rake
-
-from logging import basicConfig, info, INFO
-from datetime import datetime
-from re import sub
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
 from typing import Callable
 
 
 def create_log_file():
+    """
+    Configure log file to write.
+    """
+
     timestamp = sub('[: ]', '-', str(datetime.now())[:19])
     basicConfig(filename=LOGS_DIRECTORY + "comparison_" + timestamp + ".log", level=INFO, encoding="utf-8")
 
@@ -36,6 +40,12 @@ class CaseComparison:
                                         ])
 
     def tokenize_raw_data(self, case_entry: CaseEntry) -> list[str]:
+        """
+        Creates tokens from raw case data.
+        :param case_entry: case to create tokens from.
+        :return: list of tokens.
+        """
+
         tokens = word_tokenize(case_entry.data)
         tokens = [token.lower() for token in tokens if len(token) > 2 and token.lower() not in RUSSIAN_STOPWORDS
                   and token.lower() not in HEADERS_AND_FORMAT]
@@ -43,6 +53,13 @@ class CaseComparison:
         return tokens
 
     def tokenize_additional_info(self, case_entry: CaseEntry) -> list[str]:
+        """
+        Creates tokens from description, preconditions and steps of case.
+        Uses stemmer.
+        :param case_entry: case to create tokens from.
+        :return: list of tokens.
+        """
+
         tokens = (" ".join([case_entry.description, case_entry.preconditions,
                             " ".join(case_entry.contents),
                             " ".join(case_entry.expectations)])).split(" ")
@@ -55,6 +72,12 @@ class CaseComparison:
         return tokens
 
     def create_rake_phrases(self, case_entry: CaseEntry) -> list[str]:
+        """
+        Creates sentences from raw case data using RAKE algorithm.
+        :param case_entry: case to create sentences from.
+        :return: list of sentences.
+        """
+
         text = sub("\n+", " ", case_entry.data).strip()
         text = sub("[`*\"\']+", "", text)
         text = sub(r'[\\/|\-\[\]=+{}#~@№$%^&]+', " ", text)
@@ -64,13 +87,34 @@ class CaseComparison:
         return rake.get_ranked_phrases()
 
     def create_ngrams(self, tokens: list[str], sentence_length: int = 10) -> list[str]:
+        """
+        Creates sentences from ngrams of given length.
+        :param tokens: tokens to create ngrams from.
+        :param sentence_length:
+        :return: list of sentences.
+        """
+
         len_grams = ngrams(tokens, sentence_length)
         return [" ".join(list(gram)) for gram in len_grams]
 
     def create_sentences_for_bert(self, tokens: list[str], sentence_length: int = 10) -> list[str]:
+        """
+        Creates sentences of given length using simple split.
+        :param tokens: tokens to create ngrams from.
+        :param sentence_length:
+        :return: list of sentences.
+        """
+
         return [" ".join(tokens[idx: idx + sentence_length]) for idx in range(0, len(tokens), sentence_length)]
 
-    def vectorize_and_count_similarity(self, tokens1: list[str], tokens2: list[str]) -> list[list[float]]:
+    def vectorize_with_tfidf_and_count_similarity(self, tokens1: list[str], tokens2: list[str]) -> list[list[float]]:
+        """
+        Vectorize tokens of two cases with Tfidf and finds cosine similarity matrix.
+        :param tokens1:
+        :param tokens2:
+        :return: cosine similarity matrix.
+        """
+
         vec = TfidfVectorizer()
         vector1 = vec.fit_transform(tokens1)
         vector2 = vec.transform(tokens2)
@@ -81,11 +125,30 @@ class CaseComparison:
 
     def vectorize_with_bert_and_count_similarity(self, sentences1: list[str],
                                                  sentences2: list[str]) -> list[list[float]]:
+        """
+        Vectorize sentences of two cases with BERT model and finds cosine similarity matrix.
+        :param sentences1:
+        :param sentences2:
+        :return: cosine similarity matrix.
+        """
+
         sentence_embeddings = self.model.encode(sentences1 + sentences2)
         return cosine_similarity(sentence_embeddings[:len(sentences1)], sentence_embeddings[len(sentences1):])
 
     def evaluate_cosine_similarity(self, similarity: list[list[float]], labels1: list[str], labels2: list[str],
                                    decay: float = 0.6, metric: str = "average", print_labels: bool = False) -> float:
+        """
+        Counts metric on given cosine similarity.
+        Prints labels that match similarity decay if print_labels set True.
+        :param similarity: cosine similarity matrix.
+        :param labels1:
+        :param labels2:
+        :param decay: minimum value of cosine similarity that should affect metric.
+        :param metric: either "average" or "absolute" value of cosine similarities that matched decay.
+        :param print_labels: ``True`` if labels whose similarity matched decay to be print, or ``False`` if not.
+        :return: value of metric.
+        """
+
         count = 0
         for i in range(len(labels1)):
             for j in range(len(labels2)):
@@ -99,6 +162,13 @@ class CaseComparison:
             return count
 
     def evaluate_comparison_result(self, comp_result: dict[str, float], metric: str = "average") -> bool:
+        """
+        Decides if two cases are similar or not after comparison.
+        :param comp_result: dict result of compare* function.
+        :param metric: either "average" or "absolute" value of cosine similarities that matched decay.
+        :return: ``True`` if cases are similar and ``False`` if not.
+        """
+
         score_name = [*comp_result][0]
         if score_name == "score_tfidf":
             if metric == "average" and comp_result["score_tfidf"] >= 0.01:
@@ -124,6 +194,10 @@ class CaseComparison:
     def compare_using_ngrams(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
                              sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
                              mode: str = "silent") -> dict[str, float]:
+        """
+        Performs comparison using ngrams sentences.
+        """
+
         if mode == "silent" or mode == "print":
             if mode == "print":
                 print("Using ngrams to compare entries:")
@@ -165,6 +239,10 @@ class CaseComparison:
     def compare_using_rake_phrases(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
                                    sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
                                    mode: str = "silent") -> dict[str, float]:
+        """
+        Performs comparison using RAKE phrases.
+        """
+
         if mode == "silent" or mode == "print":
             if mode == "print":
                 print("Using Rake to compare entries:")
@@ -203,11 +281,15 @@ class CaseComparison:
 
     def compare_using_tfidf(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                             decay: float = 0.6, metric: str = "average", mode: str = "silent") -> dict[str, float]:
+        """
+        Performs comparison using tfidf vectorization.
+        """
+
         if mode == "silent" or mode == "print":
             if mode == "print":
                 print("Using Tfidf vectors to compare entries:")
             tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            cos_sim_tfidf = self.vectorize_and_count_similarity(tokens1, tokens2)
+            cos_sim_tfidf = self.vectorize_with_tfidf_and_count_similarity(tokens1, tokens2)
             score_tfidf = self.evaluate_cosine_similarity(cos_sim_tfidf, tokens1, tokens2, decay=decay, metric=metric,
                                                           print_labels=False)
             if mode == "print":
@@ -220,7 +302,7 @@ class CaseComparison:
             tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
             info("done")
             info("Creating Tfidf vectors and counting their cosine similarity")
-            cos_sim_tfidf = self.vectorize_and_count_similarity(tokens1, tokens2)
+            cos_sim_tfidf = self.vectorize_with_tfidf_and_count_similarity(tokens1, tokens2)
             info("done")
             info('Evaluating cosine similarity')
             score_tfidf = self.evaluate_cosine_similarity(cos_sim_tfidf, tokens1, tokens2, decay=decay, metric=metric,
@@ -231,6 +313,9 @@ class CaseComparison:
     def compare_using_random_sentences(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                                        decay: float = 0.6, metric: str = "average",
                                        mode: str = "silent") -> dict[str, float]:
+        """
+        Performs comparison using simple sentences.
+        """
         if mode == "silent" or mode == "print":
             if mode == "print":
                 print("Using random sentence split to compare entries:")
@@ -272,6 +357,17 @@ class CaseComparison:
     def compare(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                 decay: float = 0.6, metric: str = "average", mode: str = "silent",
                 method: str = "random_sentences") -> dict[str, float]:
+        """
+        Compares two cases and count a similarity metric.
+        :param case_entry1:
+        :param case_entry2:
+        :param sentence_length:
+        :param decay: minimum value of cosine similarity that should affect metric.
+        :param metric: either "average" or "absolute" value of cosine similarities that matched decay.
+        :param mode: either "silent", "print" if labels to be print, or "log" to write in .log file.
+        :param method: name of comparison method.
+        :return: dict[method : score]
+        """
         comparator: Callable = self.method_to_function[method]
         return comparator(case_entry1=case_entry1, case_entry2=case_entry2, sentence_length=sentence_length,
                           decay=decay, metric=metric, mode=mode)
@@ -279,6 +375,10 @@ class CaseComparison:
     def compare_case_entry_with_tree(self, case_entry: CaseEntry, case_tree: CaseTree, sentence_length: int = 10,
                                      decay: float = 0.6, metric: str = "average", mode: str = "silent",
                                      method: str = "random_sentences"):
+        """
+        Compares case with case tree, performs comparison for given case and each case in tree.
+        """
+
         if mode == "silent" or mode == "print":
             if mode == "print":
                 print("Comparing entry with '" + case_tree.case_entry.title + "' (id:" + str(
@@ -306,6 +406,10 @@ class CaseComparison:
     def compare_case_entry_with_directory(self, case_entry: CaseEntry, case_crawler: CaseCrawler,
                                           sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
                                           mode: str = "silent", method: str = "random_sentences") -> list[CaseEntry]:
+        """
+        Compares case with cases of directory, performs comparison for given case and each case of directory.
+        """
+
         possible_duplications = []
         print("Found " + str(len(case_crawler.case_entries)) + " cases in directory.\n")
 

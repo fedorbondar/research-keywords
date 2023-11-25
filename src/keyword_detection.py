@@ -1,5 +1,5 @@
-from case_parser import CaseEntry
 from case_comparison import CaseComparison
+from case_parser import CaseEntry
 
 
 class KeywordDetection:
@@ -7,6 +7,12 @@ class KeywordDetection:
         self.cc = CaseComparison()
 
     def dummy_syntax_check(self, case_entry: CaseEntry) -> list[str]:
+        """
+        Finds possible inappropriate mentions of keywords.
+        :param case_entry: case to check.
+        :return: list of possible keyword IDs.
+        """
+
         tokens = self.cc.tokenize_additional_info(case_entry)
         suspicious = [token for token in tokens if token.isdigit() and (len(token) == 6 or len(token) == 7)]
 
