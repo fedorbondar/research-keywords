@@ -13,7 +13,7 @@ class TestKeywordDetection(unittest.TestCase):
         self.assertIsNotNone(self.kd)
 
     def test_dummy_syntax_check(self):
-        ce = CaseEntry("../../src/case-examples/synthetic_bad_keyword_reference.md")
+        ce = CaseEntry("../src/case-examples/synthetic_bad_keyword_reference.md")
         result = self.kd.dummy_syntax_check(ce)
         self.assertIsNotNone(result)
         self.assertEqual(len(result), 2)

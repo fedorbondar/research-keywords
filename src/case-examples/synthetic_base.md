@@ -35,7 +35,7 @@ Synthetic
 # Preconditions:
 
 Выполнить **`keyword =` [`"Это кейворд 1"`](https://link/1234)**
-[Link to keyword](../../src/case-examples/synthetic_keyword1.md)
+[Link to keyword](../src/case-examples/synthetic_keyword1.md)
 
 
 # STEP №1
@@ -43,7 +43,7 @@ Synthetic
 ## Content:
 Сделать несколько действий, которые зависят от результата 
 **`keyword =` [`"Это кейворд 2"`](https://link/1235)**
-[Link to keyword](../../src/case-examples/synthetic_keyword2.md)
+[Link to keyword](../src/case-examples/synthetic_keyword2.md)
 
 ## Expected:
 Посмотреть на результат и обрадоваться

@@ -5,11 +5,11 @@ from case_parser import CaseEntry
 
 class TestParser(unittest.TestCase):
     def test_compiles(self):
-        te = CaseEntry("../../src/case-examples/synthetic_base.md")
+        te = CaseEntry("../src/case-examples/synthetic_base.md")
         self.assertIsNotNone(te)
 
     def test_field_initialization_main_info(self):
-        te = CaseEntry("../../src/case-examples/synthetic_keyword1.md")
+        te = CaseEntry("../src/case-examples/synthetic_keyword1.md")
         self.assertIsNotNone(te.title)
         self.assertIsNotNone(te.id)
         self.assertIsNotNone(te.section_id)
@@ -19,11 +19,11 @@ class TestParser(unittest.TestCase):
         self.assertIsNotNone(te.refs)
 
     def test_contents_and_expectations_size_match(self):
-        te = CaseEntry("../../src/case-examples/synthetic_keyword2.md")
+        te = CaseEntry("../src/case-examples/synthetic_keyword2.md")
         self.assertEqual(len(te.contents), len(te.expectations))
 
     def test_keyword_is_matched_as_keyword(self):
-        te = CaseEntry("../../src/case-examples/synthetic_keyword3.md")
+        te = CaseEntry("../src/case-examples/synthetic_keyword3.md")
         self.assertTrue(te.is_keyword)
 
 
