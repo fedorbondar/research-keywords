@@ -1,3 +1,5 @@
+![example workflow](https://github.com/fedorbondar/research-keywords/actions/workflows/run-tests.yml/badge.svg)
+
 # research-keywords
 
 Project for working with text descriptions of tests in Markdown format.
