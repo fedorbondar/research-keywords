@@ -38,6 +38,10 @@ class CaseComparison:
                                         ("rake", self.compare_using_rake_phrases),
                                         ("ngrams", self.compare_using_ngrams)
                                         ])
+        self.mode_to_output = dict([("silent", info),
+                                    ("print", print),
+                                    ("log", info)
+                                    ])
 
     def tokenize_raw_data(self, case_entry: CaseEntry) -> list[str]:
         """
@@ -193,43 +197,33 @@ class CaseComparison:
         Performs comparison using ngrams sentences.
         """
 
-        if mode == "silent" or mode == "print":
-            if mode == "print":
-                print("Using ngrams to compare entries:")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            sentences1, sentences2 = (self.create_ngrams(tokens1, sentence_length),
-                                      self.create_ngrams(tokens2, sentence_length))
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            if mode == "print":
-                score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                               metric=metric,
-                                                               print_labels=True)
-            else:
-                score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                               metric=metric,
-                                                               print_labels=False)
-            if mode == "print":
-                print('Score on BERT with ngrams: ', score_ngrams)
-            return dict([("score_ngrams", score_ngrams)])
+        output = self.mode_to_output[mode]
 
-        elif mode == "log":
-            info("Using ngrams to compare entries:")
-            info("Creating tokens for additional data")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            info("done")
-            info("Creating ngrams for BERT sentence vectorization")
-            sentences1, sentences2 = (self.create_ngrams(tokens1, sentence_length),
-                                      self.create_ngrams(tokens2, sentence_length))
-            info("done")
-            info("Creating BERT vectors and counting their cosine similarity")
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            info("done")
-            info('Evaluating cosine similarity')
-            score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                           metric=metric,
-                                                           print_labels=False)
-            info('Score on BERT with ngrams ' + str(score_ngrams))
-            return dict([("score_ngrams", score_ngrams)])
+        output("Using ngrams to compare entries:")
+        output("Creating tokens for additional data")
+
+        tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
+
+        output("done")
+        output("Creating ngrams for BERT sentence vectorization")
+
+        ngrams1, ngrams2 = (self.create_ngrams(tokens1, sentence_length),
+                            self.create_ngrams(tokens2, sentence_length))
+
+        output("done")
+        output("Creating BERT vectors and counting their cosine similarity")
+
+        cos_sim_bert = self.vectorize_with_bert_and_count_similarity(ngrams1, ngrams2)
+
+        output("done")
+        output('Evaluating cosine similarity')
+
+        score_ngrams = self.evaluate_cosine_similarity(cos_sim_bert, ngrams1, ngrams2, decay=decay,
+                                                       metric=metric,
+                                                       print_labels=(mode == "print"))
+
+        output('Score on BERT with ngrams ' + str(score_ngrams))
+        return dict([("score_ngrams", score_ngrams)])
 
     def compare_using_rake_phrases(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
                                    sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
@@ -238,41 +232,29 @@ class CaseComparison:
         Performs comparison using RAKE phrases.
         """
 
-        if mode == "silent" or mode == "print":
-            if mode == "print":
-                print("Using Rake to compare entries:")
-            sentences1, sentences2 = self.create_rake_phrases(case_entry1), self.create_rake_phrases(case_entry2)
-            sentences1 = sentences1[:len(sentences1) // 2]
-            sentences2 = sentences2[:len(sentences2) // 2]
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            if mode == "print":
-                score_rake = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                             metric=metric,
-                                                             print_labels=True)
-            else:
-                score_rake = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                             metric=metric,
-                                                             print_labels=False)
-            if mode == "print":
-                print('Score on BERT with Rake: ', score_rake)
-            return dict([("score_rake", score_rake)])
+        output = self.mode_to_output[mode]
 
-        elif mode == "log":
-            info("Using Rake to compare entries:")
-            info("Creating phrases for BERT sentence vectorization")
-            sentences1, sentences2 = self.create_rake_phrases(case_entry1), self.create_rake_phrases(case_entry2)
-            sentences1 = sentences1[:len(sentences1) // 2]
-            sentences2 = sentences2[:len(sentences2) // 2]
-            info("done")
-            info("Creating BERT vectors and counting their cosine similarity")
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            info("done")
-            info('Evaluating cosine similarity')
-            score_rake = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                         metric=metric,
-                                                         print_labels=False)
-            info('Score on BERT with Rake ' + str(score_rake))
-            return dict([("score_rake", score_rake)])
+        output("Using Rake to compare entries:")
+        output("Creating phrases for BERT sentence vectorization")
+
+        sentences1, sentences2 = self.create_rake_phrases(case_entry1), self.create_rake_phrases(case_entry2)
+        sentences1 = sentences1[:len(sentences1) // 2]
+        sentences2 = sentences2[:len(sentences2) // 2]
+
+        output("done")
+        output("Creating BERT vectors and counting their cosine similarity")
+
+        cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
+
+        output("done")
+        output('Evaluating cosine similarity')
+
+        score_rake = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
+                                                     metric=metric,
+                                                     print_labels=(mode == 'print'))
+
+        output('Score on BERT with Rake: ', score_rake)
+        return dict([("score_rake", score_rake)])
 
     def compare_using_tfidf(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                             decay: float = 0.6, metric: str = "average", mode: str = "silent") -> dict[str, float]:
@@ -280,30 +262,26 @@ class CaseComparison:
         Performs comparison using tfidf vectorization.
         """
 
-        if mode == "silent" or mode == "print":
-            if mode == "print":
-                print("Using Tfidf vectors to compare entries:")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            cos_sim_tfidf = self.vectorize_with_tfidf_and_count_similarity(tokens1, tokens2)
-            score_tfidf = self.evaluate_cosine_similarity(cos_sim_tfidf, tokens1, tokens2, decay=decay, metric=metric,
-                                                          print_labels=False)
-            if mode == "print":
-                print('Score on Tfidf: ', score_tfidf)
-            return dict([("score_tfidf", score_tfidf)])
+        output = self.mode_to_output[mode]
 
-        elif mode == "log":
-            info("Using Tfidf vectors to compare entries:")
-            info("Creating tokens for additional data")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            info("done")
-            info("Creating Tfidf vectors and counting their cosine similarity")
-            cos_sim_tfidf = self.vectorize_with_tfidf_and_count_similarity(tokens1, tokens2)
-            info("done")
-            info('Evaluating cosine similarity')
-            score_tfidf = self.evaluate_cosine_similarity(cos_sim_tfidf, tokens1, tokens2, decay=decay, metric=metric,
-                                                          print_labels=False)
-            info('Score on Tfidf ' + str(score_tfidf))
-            return dict([("score_tfidf", score_tfidf)])
+        output("Using Tfidf vectors to compare entries:")
+        output("Creating tokens for additional data")
+
+        tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
+
+        output("done")
+        output("Creating Tfidf vectors and counting their cosine similarity")
+
+        cos_sim_tfidf = self.vectorize_with_tfidf_and_count_similarity(tokens1, tokens2)
+
+        output("done")
+        output('Evaluating cosine similarity')
+
+        score_tfidf = self.evaluate_cosine_similarity(cos_sim_tfidf, tokens1, tokens2, decay=decay, metric=metric,
+                                                      print_labels=False)
+
+        output('Score on Tfidf ' + str(score_tfidf))
+        return dict([("score_tfidf", score_tfidf)])
 
     def compare_using_random_sentences(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                                        decay: float = 0.6, metric: str = "average",
@@ -311,43 +289,34 @@ class CaseComparison:
         """
         Performs comparison using simple sentences.
         """
-        if mode == "silent" or mode == "print":
-            if mode == "print":
-                print("Using random sentence split to compare entries:")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            sentences1, sentences2 = (self.create_sentences_for_bert(tokens1, sentence_length=sentence_length),
-                                      self.create_sentences_for_bert(tokens2, sentence_length=sentence_length))
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            if mode == "print":
-                score_bert = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                             metric=metric,
-                                                             print_labels=True)
-            else:
-                score_bert = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                             metric=metric,
-                                                             print_labels=False)
-            if mode == "print":
-                print('Score on random sentences: ', score_bert)
-            return dict([("score_random_sentences", score_bert)])
 
-        elif mode == "log":
-            info("Using random sentence split to compare entries:")
-            info("Creating tokens for additional data")
-            tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
-            info("done")
-            info("Splitting tokens for BERT sentence vectorization")
-            sentences1, sentences2 = (self.create_sentences_for_bert(tokens1, sentence_length=sentence_length),
-                                      self.create_sentences_for_bert(tokens2, sentence_length=sentence_length))
-            info("done")
-            info("Creating BERT vectors and counting their cosine similarity")
-            cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
-            info("done")
-            info('Evaluating cosine similarity')
-            score_bert = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
-                                                         metric=metric,
-                                                         print_labels=False)
-            info('Score on random sentences ' + str(score_bert))
-            return dict([("score_random_sentences", score_bert)])
+        output = self.mode_to_output[mode]
+
+        output("Using random sentence split to compare entries:")
+        output("Creating tokens for additional data")
+
+        tokens1, tokens2 = self.tokenize_additional_info(case_entry1), self.tokenize_additional_info(case_entry2)
+
+        output("done")
+        output("Splitting tokens for BERT sentence vectorization")
+
+        sentences1, sentences2 = (self.create_sentences_for_bert(tokens1, sentence_length=sentence_length),
+                                  self.create_sentences_for_bert(tokens2, sentence_length=sentence_length))
+
+        output("done")
+        output("Creating BERT vectors and counting their cosine similarity")
+
+        cos_sim_bert = self.vectorize_with_bert_and_count_similarity(sentences1, sentences2)
+
+        output("done")
+        output('Evaluating cosine similarity')
+
+        score_bert = self.evaluate_cosine_similarity(cos_sim_bert, sentences1, sentences2, decay=decay,
+                                                     metric=metric,
+                                                     print_labels=(mode == "print"))
+
+        output('Score on random sentences ' + str(score_bert))
+        return dict([("score_random_sentences", score_bert)])
 
     def compare(self, case_entry1: CaseEntry, case_entry2: CaseEntry, sentence_length: int = 10,
                 decay: float = 0.6, metric: str = "average", mode: str = "silent",
