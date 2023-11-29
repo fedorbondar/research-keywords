@@ -47,8 +47,9 @@ class CaseComparison:
         """
 
         tokens = word_tokenize(case_entry.data)
-        tokens = [token.lower() for token in tokens if len(token) > 2 and token.lower() not in RUSSIAN_STOPWORDS
-                  and token.lower() not in HEADERS_AND_FORMAT]
+        tokens = map(str.lower, tokens)
+        tokens = [token for token in tokens if len(token) > 2 and token not in RUSSIAN_STOPWORDS
+                  and token not in HEADERS_AND_FORMAT]
 
         return tokens
 
@@ -171,25 +172,19 @@ class CaseComparison:
 
         score_name = [*comp_result][0]
         if score_name == "score_tfidf":
-            if metric == "average" and comp_result["score_tfidf"] >= 0.01:
-                return True
-            if metric == "absolute" and comp_result["score_tfidf"] >= 100:
-                return True
-            return False
+            if metric == "average":
+                return comp_result["score_tfidf"] >= 0.01
+            if metric == "absolute":
+                return comp_result["score_tfidf"] >= 100
         if score_name == "score_random_sentences":
-            if comp_result["score_random_sentences"] > 0:
-                return True
-            return False
+            return comp_result["score_random_sentences"] > 0
         if score_name == "score_rake":
-            if comp_result["score_rake"] > 0:
-                return True
-            return False
+            return comp_result["score_rake"] > 0
         if score_name == "score_ngrams":
-            if metric == "average" and comp_result["score_tfidf"] >= 0.05:
-                return True
-            if metric == "absolute" and comp_result["score_tfidf"] >= 100:
-                return True
-            return False
+            if metric == "average":
+                return comp_result["score_tfidf"] >= 0.05
+            if metric == "absolute":
+                return comp_result["score_tfidf"] >= 100
 
     def compare_using_ngrams(self, case_entry1: CaseEntry, case_entry2: CaseEntry,
                              sentence_length: int = 10, decay: float = 0.6, metric: str = "average",

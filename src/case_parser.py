@@ -10,24 +10,27 @@ class Keyword:
     link_to_keyword: str
 
 
+@dataclass
 class CaseEntry:
+    path: str
+    data: str
+    sections: list[str]
+    title: str
+    name_in_tors: str
+    id: int
+    url: str
+    section_id: int
+    refs: str
+    main_product: str
+    description: str
+    preconditions: str
+    is_keyword: bool = False
+
     def __init__(self, path: str):
-        self.path: str = path
-        self.data: str
-        self.sections: list[str]
-        self.title: str
-        self.name_in_tors: str
-        self.id: int
-        self.url: str
-        self.section_id: int
-        self.refs: str
-        self.main_product: str
-        self.description: str
-        self.preconditions: str
+        self.path = path
         self.contents: list[str] = []
         self.expectations: list[str] = []
         self.keywords: list[Keyword] = []
-        self.is_keyword: bool = False
 
         self.__load_data()
         self.__parse_sections()
