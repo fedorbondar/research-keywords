@@ -11,7 +11,7 @@ Project for working with text descriptions of tests in Markdown format.
 
 ## Requirements
 
-See [here](../research-keywords/requirements.txt).
+See [here](https://github.com/fedorbondar/research-keywords/blob/main/requirements.txt).
 
 Best way to get all required packages at once is running the following line:
 
@@ -39,3 +39,16 @@ python main.py path_to_cases_folder path/new_case.md [silent | print | log]
 ```
 
 The last argument is optional and set `silent` by default.
+
+## References
+
+* "Making Monolingual Sentence Embeddings Multilingual using Knowledge Distillation" by N. Reimers, I. Gurevych
+  ([source](https://arxiv.org/abs/2004.09813))
+* "Automatic Keyword Extraction from Individual Documents" by S. Rose, D. Engel, N. Cramer W. Cowley
+  ([source](https://www.researchgate.net/publication/227988510_Automatic_Keyword_Extraction_from_Individual_Documents))
+* "Python implementation of the Rapid Automatic Keyword Extraction algorithm using NLTK" by Vishwas B. Sharma
+  ([source](https://csurfer.github.io/rake-nltk/_build/html/index.html))
+
+## License
+
+[MIT License](https://github.com/fedorbondar/research-keywords/blob/main/LICENSE)
