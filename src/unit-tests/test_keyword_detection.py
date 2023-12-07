@@ -21,14 +21,16 @@ class TestKeywordDetection(unittest.TestCase):
 
     def test_match_keywords_with_entry(self):
         ce = CaseEntry("../src/case-examples/synthetic_keyword_for_not_linked.md")
-        keywords = ['Получены логин и пароль для входа в систему NNN.']
+        source = CaseEntry("../src/case-examples/synthetic_not_linked_keywords.md")
+        keywords = self.kd.get_possible_keywords_from_preconditions(source)
         result = self.kd.match_keywords_with_entry(keywords, ce, metric="absolute")
         self.assertIsNotNone(result)
         self.assertTrue(result > 0)
 
     def test_match_keywords_with_directory(self):
         ce = CaseCrawler("../src/case-examples")
-        keywords = ['Получены логин и пароль для входа в систему NNN.']
+        source = CaseEntry("../src/case-examples/synthetic_not_linked_keywords.md")
+        keywords = self.kd.get_possible_keywords_from_preconditions(source)
         result = self.kd.match_keywords_with_directory(keywords, ce, metric="absolute", mode="silent")
         self.assertIsNotNone(result)
         self.assertTrue(len(result) > 0)

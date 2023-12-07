@@ -2,6 +2,8 @@ from case_comparison import CaseComparison
 from case_crawler import CaseCrawler
 from case_parser import CaseEntry
 
+from re import findall
+
 
 class KeywordDetection:
     def __init__(self):
@@ -28,10 +30,36 @@ class KeywordDetection:
 
         return result
 
+    def get_possible_keywords_from_preconditions(self, case_entry: CaseEntry, sentence_length: int = 10) -> list[str]:
+        """
+        Finds possible keyword phrases in preconditions section
+        :param case_entry: case entry to check
+        :param sentence_length: length of phrases to obtain
+        :return: list of keyword phrases
+        """
+
+        tokens = case_entry.preconditions.split(" ")
+        return [" ".join(tokens[idx: idx + sentence_length]) for idx in range(0, len(tokens), sentence_length)]
+
+    def match_keywords_with_entry_exactly(self, keyword_phrases: list[str], case_entry: CaseEntry) -> int:
+        """
+        Finds matches of keyword phrases in case entry using exact matching
+        :param keyword_phrases: keyword phrases to match
+        :param case_entry: case entry to check
+        :return: number of matches
+        """
+
+        occurrences = 0
+        data = case_entry.data.lower()
+        for phrase in keyword_phrases:
+            occurrences += len(findall(phrase.lower(), data))
+
+        return occurrences
+
     def match_keywords_with_entry(self, keyword_phrases: list[str], case_entry: CaseEntry, sentence_length: int = 10,
                                   decay: float = 0.6, metric: str = "average", mode: str = "silent") -> float:
         """
-        Finds matches of keyword phrases in case entry
+        Finds matches of keyword phrases in case entry using BERT encoding
         :param keyword_phrases: keyword phrases to match
         :param case_entry: case entry to check
         :param sentence_length: length of sentences to match with keyword phrases
