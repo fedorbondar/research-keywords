@@ -343,29 +343,18 @@ class CaseComparison:
         Compares case with case tree, performs comparison for given case and each case in tree.
         """
 
-        if mode == "silent" or mode == "print":
-            if mode == "print":
-                print("Comparing entry with '" + case_tree.case_entry.title + "' (id:" + str(
-                    case_tree.case_entry.id) + ")")
-            print(self.compare(case_entry, case_tree.case_entry, decay=decay, metric=metric,
-                               sentence_length=sentence_length, mode=mode, method=method))
-            if mode == "print":
-                print("---------------------------------------")
-            for sub_case_tree in case_tree.sub_case_trees:
-                self.compare_case_entry_with_tree(case_entry, sub_case_tree, decay=decay, metric=metric,
-                                                  sentence_length=sentence_length, mode=mode, method=method)
+        output = self.mode_to_output[mode]
+        if case_tree.level == 0 and mode == "log":
+            create_log_file()
+            output("Comparing entry '" + case_entry.title + "' (id: " + str(case_entry.id) + ")")
 
-        elif mode == "log":
-            if case_tree.level == 0:
-                create_log_file()
-                info("Comparing entry '" + case_entry.title + "' (id: " + str(case_entry.id) + ")")
-
-            info("Comparing entry with '" + case_tree.case_entry.title + "' (id: " + str(case_tree.case_entry.id) + ")")
-            info(self.compare(case_entry, case_tree.case_entry, decay=decay, metric=metric,
-                              sentence_length=sentence_length, mode=mode, method=method))
-            for sub_case_tree in case_tree.sub_case_trees:
-                self.compare_case_entry_with_tree(case_entry, sub_case_tree, decay=decay, metric=metric,
-                                                  sentence_length=sentence_length, mode=mode, method=method)
+        output("Comparing entry with '" + case_tree.case_entry.title + "' (id:" + str(case_tree.case_entry.id) + ")")
+        output(self.compare(case_entry, case_tree.case_entry, decay=decay, metric=metric,
+                            sentence_length=sentence_length, mode=mode, method=method))
+        output("---------------------------------------")
+        for sub_case_tree in case_tree.sub_case_trees:
+            self.compare_case_entry_with_tree(case_entry, sub_case_tree, decay=decay, metric=metric,
+                                              sentence_length=sentence_length, mode=mode, method=method)
 
     def compare_case_entry_with_directory(self, case_entry: CaseEntry, case_crawler: CaseCrawler,
                                           sentence_length: int = 10, decay: float = 0.6, metric: str = "average",
@@ -374,38 +363,24 @@ class CaseComparison:
         Compares case with cases of directory, performs comparison for given case and each case of directory.
         """
 
+        output = self.mode_to_output[mode]
         possible_duplications = []
         print("Found " + str(len(case_crawler.case_entries)) + " cases in directory.\n")
 
-        if mode == "silent":
-            for i, ce in enumerate(case_crawler.case_entries):
-                comp_result = self.compare(case_entry, ce, decay=decay, metric=metric,
-                                           sentence_length=sentence_length, mode=mode, method=method)
-                if self.evaluate_comparison_result(comp_result=comp_result, metric=metric):
-                    possible_duplications.append(ce)
-                if i > 0 and i % 9 == 0 or i == len(case_crawler.case_entries) - 1:
-                    print("Proceeded " + str(i + 1) + " cases")
-
-        elif mode == "print":
-            print("Comparing entry '" + case_entry.title + "' (id:" + str(case_entry.id) + ")")
-            print('\n---------------------------------------\n')
-            for ce in case_crawler.case_entries:
-                print("Comparing entry with '", ce.title, "' (id:", ce.id, ")")
-                comp_result = self.compare(case_entry, ce, decay=decay, metric=metric,
-                                           sentence_length=sentence_length, mode=mode, method=method)
-                if self.evaluate_comparison_result(comp_result=comp_result, metric=metric):
-                    possible_duplications.append(ce)
-                print('\n---------------------------------------\n')
-
-        elif mode == "log":
+        if mode == "log":
             create_log_file()
-            info("Comparing entry '" + case_entry.title + "' (id: " + str(case_entry.id) + ")")
-            for ce in case_crawler.case_entries:
-                info("Comparing entry with '" + ce.title + "' (id: " + str(ce.id) + ")")
-                comp_result = self.compare(case_entry, ce, decay=decay, metric=metric,
-                                           sentence_length=sentence_length, mode=mode, method=method)
-                if self.evaluate_comparison_result(comp_result=comp_result, metric=metric):
-                    possible_duplications.append(ce)
+
+        output("Comparing entry '" + case_entry.title + "' (id:" + str(case_entry.id) + ")")
+        output('\n---------------------------------------\n')
+        for i, ce in enumerate(case_crawler.case_entries):
+            output("Comparing entry with '" + ce.title + "' (id: " + str(ce.id) + ")")
+            comp_result = self.compare(case_entry, ce, decay=decay, metric=metric,
+                                       sentence_length=sentence_length, mode=mode, method=method)
+            if self.evaluate_comparison_result(comp_result=comp_result, metric=metric):
+                possible_duplications.append(ce)
+            output('\n---------------------------------------\n')
+            if i > 0 and i % 9 == 0 or i == len(case_crawler.case_entries) - 1:
+                print("Proceeded " + str(i + 1) + " cases")
 
         if len(possible_duplications) > 0:
             print("\nPossible duplications of case found:")
